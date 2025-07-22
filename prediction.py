@@ -5,8 +5,8 @@ from mido import Message, MidiFile, MidiTrack, MetaMessage, bpm2tempo
 environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
-from distribution import RandomDistributionReform
-from preparation1 import read_model, load_midi_file, get_seed
+from .distribution import RandomDistributionReform
+from .preparation1 import read_model, load_midi_file, get_seed
 
 
 class FormateError(TypeError):
@@ -123,6 +123,5 @@ class Seed:
 
 
 if __name__ == '__main__':
-    # Predict(seed=get_seed(), epoch=256, model_version=1751770203)
     s = Seed(midi_file='example_seed.mid')
     Predict(seed=s.get_seed(),epoch=128, model_version=1751770203)
