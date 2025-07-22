@@ -1,4 +1,4 @@
-from prediction import Predict
-from preparation1 import *
+from .prediction import Predict
+from .preparation1 import *
 
-name = 'Midi-Neuronal-Generator'
+name = 'miding'
