@@ -19,13 +19,11 @@ View at the webpage
 
 ### How to use the model?
 
-For example, you could use a random seed:
+First, **COPY** the model files (*.keras) in the package path to your programme directory before call Predict!
 
-``from miding import Predict, Seed, get_seed``
+And then, for example, you could use a random seed:
 
-``Predict(seed=get_seed(), epoch=256, model_version=1751770203)``
-
-or a defined seed:
+``from miding import Predict, Seed``
 
 ``s = Seed(midi_file='example_seed.mid')``
 

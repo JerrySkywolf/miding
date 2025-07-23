@@ -1,4 +1,4 @@
-from .prediction import Predict
+from .prediction import *
 from .preparation1 import *
 
 name = 'miding'

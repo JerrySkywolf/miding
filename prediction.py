@@ -1,12 +1,12 @@
 import numpy as np
 from time import time
-from os import environ
+from os import environ, mkdir, listdir
 from mido import Message, MidiFile, MidiTrack, MetaMessage, bpm2tempo
 environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 from .distribution import RandomDistributionReform
-from .preparation1 import read_model, load_midi_file, get_seed
+from .preparation1 import read_model, load_midi_file
 
 
 class FormateError(TypeError):
@@ -19,14 +19,15 @@ class Predict:
                  epoch: int,
                  model_version,
                  instrument_code: int = 0,
-                 result_save_path: str = 'result',
                  ):
         """
         The main class, called to predict scores.
         :param seed: the start score, need an array in size (1, 8, 4)
         :param epoch: the total length of the generated score will be 8(seed length) + epoch
+
+        #Warning:
+        Copy the model files (*.keras) in the package path to your programme directory before call Predict!
         """
-        self.save_path = result_save_path
         self.model = read_model(version=model_version)
         self.seed = seed
         self.epoch = epoch
@@ -42,7 +43,7 @@ class Predict:
         self.cycle()
         self.save_track0()
         self.save_track1()
-        self.mid.save(f'{self.save_path}/{self.save_file_name}.mid')
+        self.mid.save(f'{self.save_file_name}.mid')
 
     def cycle(self):
         for i in range(0, self.epoch):
