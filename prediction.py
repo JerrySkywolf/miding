@@ -2,6 +2,7 @@ import numpy as np
 from time import time
 from os import environ, mkdir, listdir
 from mido import Message, MidiFile, MidiTrack, MetaMessage, bpm2tempo
+
 environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
@@ -11,6 +12,48 @@ from .preparation1 import read_model, load_midi_file
 
 class FormateError(TypeError):
     pass
+
+
+class Purify:
+    def __init__(self, score: list):
+        self.score = score
+        self.pool = []
+        self.remain = []
+        self.purify()
+
+    def purify(self):
+        for note in self.score:
+            note = list(note)
+            if note[0] == 0:
+                parent_element = note.copy()
+                parent_element[0] = 1
+                if parent_element in self.score:
+                    self.pool.append(note)
+            elif note[0] == 1:
+                son_note = note.copy()
+                son_note[0] = 0
+                self.pool.append(note)
+                self.pool.append(son_note)
+
+class Correct:
+    def __init__(self, score: list):
+        self.score = score
+        self.pool = []
+        self.correct()
+
+    def correct(self):
+        for note in self.score:
+            note = list(note)
+            if note[0] == 1:
+                son_note = note.copy()
+                son_note[0] = 0
+                self.pool.append(note)
+                self.pool.append(son_note)
+            elif note[0] == 0:
+                parent_note = note.copy()
+                parent_note[0] = 1
+                self.pool.append(parent_note)
+                self.pool.append(note)
 
 
 class Predict:
@@ -34,21 +77,21 @@ class Predict:
         self.instrument = instrument_code
         self.prediction = None
         self.sequence = []
-        self.save_file_name = f'{int(time())}-ß'
+        self.save_file_name = f're{int(time())}v2'
         self.mid = MidiFile()
         self.track0 = MidiTrack()
         self.track1 = MidiTrack()
         self.mid.tracks.append(self.track0)
         self.mid.tracks.append(self.track1)
-        self.cycle()
         self.save_track0()
+        self.cycle()
         self.save_track1()
         self.mid.save(f'{self.save_file_name}.mid')
 
     def cycle(self):
         for i in range(0, self.epoch):
             self.prediction = self.model.predict(self.seed)
-            print(self.seed[0, -1, :])
+            print(f'Epoch {i} : {self.seed[0, -1, :]}')
             self.prediction = RandomDistributionReform(self.prediction, args=(5, 5))
             self.prediction = self.prediction.beta_distribution()
             for j in range(0, 7):
@@ -59,12 +102,12 @@ class Predict:
     def save_track0(self):
         self.track0.append(MetaMessage('time_signature', numerator=4, denominator=4, time=0))
         self.track0.append(MetaMessage('key_signature', key='C', time=0))
-        self.track0.append(MetaMessage('set_tempo', tempo=bpm2tempo(80), time=0))
+        self.track0.append(MetaMessage('set_tempo', tempo=bpm2tempo(100), time=0))
         self.track0.append(MetaMessage('track_name', name=self.save_file_name, time=0))
         self.track0.append(MetaMessage('end_of_track', time=1))
 
     def save_track1(self):
-        self.track1.append(MetaMessage('track_name', name='Instrument', time=0))
+        self.track1.append(MetaMessage('track_name', name='Piano', time=0))
         self.track1.append(Message(type='program_change', program=self.instrument, time=0))
         middle = []
         for i in self.sequence:
@@ -73,24 +116,11 @@ class Predict:
             else:
                 i[0] = 1
             args = (int(i[0]), int(i[1] * 128), int(i[2] * 128), int(i[3] * 128))
-            if args[1] > 127 or args[2] > 127:
-                continue
-            elif args[3] > 1000:
-                continue
             middle.append(args)
-        middle = np.array(middle).T
-        a, b= middle[0].T, middle[1].T
-        count = 0
-        for i, j in enumerate(b):
-            if a[i] == 1:
-                c = middle.T[i + 1:]
-                if np.array([0, j]) not in c[:, :2]:
-                    middle_f = np.delete(middle, obj=i, axis=1)
-                    middle = middle_f
-                    print(middle_f)
-                    continue
-            count += 1
-        middle = middle.T
+        corrector = Correct(score=middle)
+        correct = corrector.pool
+        middle = np.array(correct)
+
         for i in middle:
             if i[0] < 0.5:
                event_flag = 'note_off'
@@ -125,4 +155,4 @@ class Seed:
 
 if __name__ == '__main__':
     s = Seed(midi_file='example_seed.mid')
-    Predict(seed=s.get_seed(),epoch=128, model_version=1751770203)
+    Predict(seed=s.get_seed(),epoch=600, model_version=1751770203)
